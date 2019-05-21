@@ -1,8 +1,8 @@
 import React from 'react';
 import { connect, Provider } from 'react-redux';
-import { AsyncStorage, StyleSheet, Text, View } from 'react-native';
+import { AsyncStorage, Button, StyleSheet, Text, TextInput, View } from 'react-native';
 import { persistStore } from 'redux-persist';
-import { loadMessage } from './actions';
+import { loadMessage, sendMessage } from './actions';
 import configureStore from './store';
 
 const store = configureStore();
@@ -11,30 +11,48 @@ const store = configureStore();
 class App extends React.Component {
 
   componentDidMount = () => {
-    this.props.loadMessage()
-    // this.loader = setInterval(this.props.loadMessage, 5000);
+    const { loadMessage, sendMessage, messageToSend, sentSuccess } = this.props;
+    this.loader = setInterval(loadMessage, 5000);
+    if(!sentSuccess) {
+      sendMessage(messageToSend);
+    }
   }
 
-  // componentWillUnmount = () => {
-  //   clearInterval(this.loader);
-  // }
+  componentWillUnmount = () => {
+     clearInterval(this.loader);
+  }
+
+  send = () => {
+    this.props.sendMessage(this.state.text);
+  }
 
   render = () => {
-    const { message } = this.props;
+    const { message, sentSuccess, messageToSend } = this.props;
     return (
       <View style={styles.container}>
         <Text>{message}</Text>
+        <TextInput
+          onChangeText={t => this.setState({ text: t })}
+          style={styles.input}
+        />
+        <Button onPress={this.send} title="Send" />
+        {sentSuccess && !!messageToSend && (<Text>Sent</Text>)}
+        {!sentSuccess && (<Text>Send failed, retrying...</Text>)}
       </View>
     );
   }
 }
 
 const mapDispatch = {
-  loadMessage
+  loadMessage,
+  sendMessage
 }
 
 const mapState = state => ({
-  message: state.message
+  message: state.message,
+  messageToSend: state.messageToSend,
+  sentSuccess: state.sentSuccess
+
 });
 
 const styles = StyleSheet.create({
@@ -44,6 +62,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
+  input: {
+    borderColor: '#333',
+    borderWidth: StyleSheet.hairlineWidth,
+    width: 200,
+    margin: 15
+  }
 });
 
 const ConnectedApp = connect(mapState, mapDispatch)(App);
